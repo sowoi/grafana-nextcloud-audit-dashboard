@@ -18,6 +18,12 @@
       "version": "9.2.8"
     },
     {
+      "type": "panel",
+      "id": "logs",
+      "name": "Logs",
+      "version": ""
+    },
+    {
       "type": "datasource",
       "id": "loki",
       "name": "Loki",
@@ -90,12 +96,17 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -131,7 +142,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "count by (remoteAddr) (count_over_time({job=\"$jobname\", filename=\"$filename\"}| json message=\"message\", remoteAddr=\"remoteAddr\", time=\"time\", userAgent=\"userAgent\", user=\"user\", url=\"url\" | message!~\".*(S|s)uccessful.*\"| __error__=\"\" [$__interval]))",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*` | message!~`.*.(S|s)uccessful.*` ",
           "legendFormat": "{{ user }}",
           "queryType": "range",
           "refId": "A"
@@ -140,14 +151,12 @@
       "title": "login attempts by remote addr",
       "transformations": [
         {
-          "id": "calculateField",
+          "id": "reduce",
           "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "include": [],
-              "reducer": "count"
-            },
-            "replaceFields": true
+            "labelsToFields": false,
+            "reducers": [
+              "count"
+            ]
           }
         }
       ],
@@ -159,17 +168,39 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
+      "description": "Anonymous users are scripts or talk logins",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "anonymous": {
+                  "color": "red",
+                  "index": 0
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "pattern": "anony.*",
+                "result": {
+                  "color": "red",
+                  "index": 1
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
               }
             ]
@@ -215,17 +246,6 @@
       "title": "login attempts by user",
       "transformations": [
         {
-          "id": "calculateField",
-          "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "include": [],
-              "reducer": "count"
-            },
-            "replaceFields": false
-          }
-        },
-        {
           "id": "renameByRegex",
           "options": {
             "regex": "--",
@@ -233,6 +253,139 @@
           }
         }
       ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "id": 38,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(remoteAddr) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*`  message !~ `.*.(S|s)uccessful.*`  __error__=\"\"[$__range]))",
+          "legendFormat": "{{ remoteAddr }}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Login attempts by IP",
+      "transformations": [],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Attempted logins with invalid username",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 33,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(wrongUser) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*`  message !~ `.*.(S|s)uccessful.*` | pattern `<_>\\\"<wrongUser>\\\"` | __error__=\"\"[$__range]))",
+          "legendFormat": "{{ wrongUser }}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "login attempts with unknown user",
+      "transformations": [],
       "transparent": true,
       "type": "stat"
     },
@@ -273,6 +426,7 @@
               "type": "regex"
             }
           ],
+          "noValue": "no user logins found within the the timerange",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -293,7 +447,7 @@
         "h": 12,
         "w": 12,
         "x": 0,
-        "y": 13
+        "y": 37
       },
       "id": 13,
       "options": {
@@ -315,7 +469,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json message=\"message\", remoteAddr=\"remoteAddr\", time=\"time\", userAgent=\"userAgent\", userName=\"user\", url=\"url\" | url=~`/log.*` | pattern `<_>Login attempt: \\\"<userName>\\\"` | pattern `<_>Login successful: \\\"<userName>\\\"` | pattern `<_>Failed two factor attempt by user <userName> `| pattern `<_>Successful two factor attempt by user <userName> `",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*` | pattern `<_>Login attempt: \\\"<userName>\\\"` | pattern `<_>Login successful: \\\"<userName>\\\"` | pattern `<_>Failed two factor attempt by user <userName> `| pattern `<_>Successful two factor attempt by user <userName> ` | __error__=\"\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -334,10 +488,16 @@
           "id": "organize",
           "options": {
             "excludeByName": {
+              "app": true,
+              "data_app": true,
               "filename": true,
               "job": true,
+              "level": true,
+              "method": true,
+              "reqId": true,
               "url": true,
-              "user": true
+              "user": true,
+              "version": true
             },
             "indexByName": {
               "filename": 1,
@@ -375,7 +535,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 49
       },
       "id": 18,
       "panels": [],
@@ -419,6 +579,7 @@
               "type": "regex"
             }
           ],
+          "noValue": "no file changes by users found within the the timerange",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -439,7 +600,7 @@
         "h": 13,
         "w": 12,
         "x": 0,
-        "y": 26
+        "y": 50
       },
       "id": 19,
       "options": {
@@ -461,7 +622,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json | url=~\"/remote.php/dav/.*\" method!~\"REPORT\" method!~\"PROPFIND\" method!~\"OPTIONS\"  | pattern `<_>File<_> \\\"/<_>/<fileName>\\\"` ",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json | url=~\"/remote.php/dav/.*\" method!~\"REPORT\" method!~\"PROPFIND\" method!~\"OPTIONS\"  | pattern `<_>File<_> \\\"/<_>/<fileName>\\\"` | __error__=\"\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -552,12 +713,17 @@
               "type": "regex"
             }
           ],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -568,7 +734,7 @@
         "h": 5,
         "w": 2,
         "x": 0,
-        "y": 39
+        "y": 63
       },
       "id": 25,
       "options": {
@@ -647,12 +813,17 @@
               "type": "regex"
             }
           ],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           }
@@ -663,7 +834,7 @@
         "h": 5,
         "w": 2,
         "x": 2,
-        "y": 39
+        "y": 63
       },
       "id": 24,
       "options": {
@@ -688,7 +859,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json message=\"message\", remoteAddr=\"remoteAddr\", time=\"time\", userAgent=\"userAgent\", user=\"user\", url=\"url\", method=\"method\" | url=~\"/remote.php/dav/.*\" method=\"DELETE\" | __error__=\"\" [$__interval]))",
+          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json message=\"message\", remoteAddr=\"remoteAddr\", time=\"time\", userAgent=\"userAgent\", user=\"user\", url=\"url\", method=\"method\" | url=~\"/remote.php/dav/.*\" url!~\"/remote.php/dav/.*./trash\" method=\"DELETE\" | __error__=\"\" [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -720,34 +891,18 @@
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "options": {
-                "pattern": "DELETE.*",
-                "result": {
-                  "color": "red",
-                  "index": 0
-                }
-              },
-              "type": "regex"
-            },
-            {
-              "options": {
-                "pattern": "Failed two factor attempt .*",
-                "result": {
-                  "color": "red",
-                  "index": 1
-                }
-              },
-              "type": "regex"
-            }
-          ],
+          "mappings": [],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "orange",
+                "color": "green",
                 "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
               }
             ]
           }
@@ -758,7 +913,7 @@
         "h": 5,
         "w": 2,
         "x": 4,
-        "y": 39
+        "y": 63
       },
       "id": 26,
       "options": {
@@ -773,6 +928,9 @@
           "fields": "",
           "values": false
         },
+        "text": {
+          "valueSize": 0
+        },
         "textMode": "auto"
       },
       "pluginVersion": "9.2.8",
@@ -783,12 +941,12 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\"/remote.php/dav/.*\" method=\"POST\" | __error__=\"\" [$__interval]))",
+          "expr": "count by (reqId) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\"/apps/text/session/sync\" method=\"POST\" | __error__=\"\" [$__interval]))",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Files changed",
+      "title": "Files updated",
       "transformations": [
         {
           "id": "calculateField",
@@ -837,6 +995,7 @@
               "type": "regex"
             }
           ],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -853,7 +1012,7 @@
         "h": 5,
         "w": 2,
         "x": 6,
-        "y": 39
+        "y": 63
       },
       "id": 27,
       "options": {
@@ -932,6 +1091,7 @@
               "type": "regex"
             }
           ],
+          "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -948,7 +1108,7 @@
         "h": 5,
         "w": 2,
         "x": 8,
-        "y": 39
+        "y": 63
       },
       "id": 28,
       "options": {
@@ -1001,7 +1161,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 68
       },
       "id": 10,
       "panels": [],
@@ -1047,11 +1207,13 @@
               "type": "regex"
             }
           ],
+          "noValue": "no user changes found within the the timerange",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1066,7 +1228,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 45
+        "y": 69
       },
       "id": 12,
       "options": {
@@ -1088,7 +1250,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json  | url=~`/ocs/v2.php/cloud/users.*` | pattern `<_>User created: \\\"<userName>\\\"` | pattern `<_>User deleted: \\\"<userName>\\\"`| pattern `<_>Password of user \\\"<userName>\\\"` | pattern `<_>Email<_>user <userName>\"` | pattern `<_>User \\\"<userName>\\\" added` | pattern `<_>User \\\"<userName>\\\"` | pattern `<_>User enabled: \\\"<userName>\\\"` | pattern `<_>User disabled: \\\"<userName>\\\"`",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json  | url=~`/ocs/v2.php/cloud/users.*` | pattern `<_>User created: \\\"<userName>\\\"` | pattern `<_>User deleted: \\\"<userName>\\\"`| pattern `<_>Password of user \\\"<userName>\\\"` | pattern `<_>Email<_>user <userName>\"` | pattern `<_>User \\\"<userName>\\\" added` | pattern `<_>User \\\"<userName>\\\"` | pattern `<_>User enabled: \\\"<userName>\\\"` | pattern `<_>User disabled: \\\"<userName>\\\"`| __error__=\"\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -1161,7 +1323,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 80
       },
       "id": 4,
       "panels": [],
@@ -1181,11 +1343,13 @@
             "inspect": false
           },
           "mappings": [],
+          "noValue": "no anonymous accesses found within the the timerange",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1200,7 +1364,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 57
+        "y": 81
       },
       "id": 1,
       "options": {
@@ -1294,6 +1458,265 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 4,
+        "x": 0,
+        "y": 92
+      },
+      "id": 29,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by(time)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | __error__=\"\" [$__interval]))",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Anonymous accesses via share link (count)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 4,
+        "x": 4,
+        "y": 92
+      },
+      "id": 30,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by(remoteAddr)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | __error__=\"\" [$__interval]))",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Anonymous accesses by unique remote IPs",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "See permission changes panel below to find out if the full write permission has been revised again.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 4,
+        "x": 8,
+        "y": 92
+      },
+      "id": 31,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(shareID)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` message!~`The password.*` | pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID=`31` | __error__=\"\" [$__interval]))",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Possible folder shares with full write permission",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "disabled": true,
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "job": true,
+              "level": true,
+              "message": true,
+              "method": true,
+              "reqId": false,
+              "userAgent": true,
+              "version": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
       "description": "Anonymous file operations via share link",
       "fieldConfig": {
         "defaults": {
@@ -1325,11 +1748,13 @@
               "type": "regex"
             }
           ],
+          "noValue": "no anonymous file operations found within the the timerange",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1357,7 +1782,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 68
+        "y": 103
       },
       "id": 2,
       "options": {
@@ -1380,7 +1805,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json  | user=`--` | url!=`--` message!~`Login.*` | pattern `<_>File <_> \\\"/<_>/<fileName>\\\"` | pattern `<_>Preview <_> \\\"/<_>/<fileName>\\\"`",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json  | user=`--` | url!=`--` message!~`Login.*` | pattern `<_>File <_> \\\"/<_>/<fileName>\\\"` | pattern `<_>Preview <_> \\\"/<_>/<fileName>\\\"`| __error__=\"\"",
           "key": "Q-894d39f9-5739-404c-a219-de17a05259fb-0",
           "queryType": "range",
           "refId": "A"
@@ -1513,11 +1938,13 @@
               "type": "value"
             }
           ],
+          "noValue": "no permission changes on shared folders found within the the timerange",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1532,7 +1959,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 79
+        "y": 114
       },
       "id": 6,
       "options": {
@@ -1554,7 +1981,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"`",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | __error__=\"\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -1620,9 +2047,60 @@
       ],
       "transparent": true,
       "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 125
+      },
+      "id": 35,
+      "panels": [],
+      "title": "General log",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 126
+      },
+      "id": 37,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": false,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} ",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "logfile",
+      "type": "logs"
     }
   ],
-  "refresh": false,
+  "refresh": "5s",
   "schemaVersion": 37,
   "style": "dark",
   "tags": [
@@ -1713,6 +2191,6 @@
   "timezone": "",
   "title": "Nextcloud Audit Logs",
   "uid": "4wjPoyTVk",
-  "version": 15,
+  "version": 31,
   "weekStart": ""
 }
