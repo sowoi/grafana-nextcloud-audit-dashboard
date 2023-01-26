@@ -15,3 +15,8 @@ This dashboard is posted on [Grafana's dashboards section](https://grafana.com/g
 
 ![Grafana-Dashboard-Nextcloud-Audit](grafana-dashboard-nextcloud-audit-logs-1.png)
 ![Grafana-Dashboard-Nextcloud-Audit](grafana-dashboard-nextcloud-audit-logs-2.png)
+
+
+
+# License
+Licensed under the terms of GNU General Public License v3.0. See LICENSE file.
