@@ -3,11 +3,11 @@ groups:
   - name: nextcloud login attempt
     rules:
       - alert: nextcloudLoginAttempt
-        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/login*"  message!~".*.(S|s)uccessful.*" method="POST" __error__=""[1m])) > 0
+        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/login*"  message!~".*.(S|s)uccessful.*" method="POST"  __error__=""[1m])) > 3
         labels:
           severity: warning
         annotations:
-          summary: login attempt detected
+          summary: 3 login attempts within 1 minute detecte
   - name: nextcloud failed two factor
     rules:
       - alert: nextcloudLoginTwoFactorAttempt
