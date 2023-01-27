@@ -1,0 +1,58 @@
+# Loki Alert rules
+groups:
+  - name: nextcloud login attempt
+    rules:
+      - alert: nextcloudLoginAttempt
+        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/login*"  message!~".*.(S|s)uccessful.*"  __error__=""[1m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: login attempt detected
+  - name: nextcloud failed two factor
+    rules:
+      - alert: nextcloudLoginTwoFactorAttempt
+        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"(/login|/login/challenge/totp)" , message=~"Failed.*"  __error__="" [1m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: failed login attempt with two factor detected
+  - name: nextcloud login ip throttled
+    rules:
+      - alert: nextcloudLoginIPthrottled
+        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/log.*" message=~".*.throttled.*" __error__=""[1m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: IP address throttled because it reached the attempts limit in the last 30 minutes
+  - name: nextcloud bruteforce
+    rules:
+      - alert: nextcloudLoginBruteForce
+        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/log.*" message=~"Bruteforce.*" __error__="" [1m])) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: Brute force attempt detected   
+  - name: nextcloud user added to admin group
+    rules:
+      - alert: nextcloudUserAddedtoGroupAdmin
+        expr: sum by(user,message)(count_over_time({job="nextcloud"} | json | url=~"/ocs/v2.php/cloud/users.*" message=~".*.added to group \"admin\".*"  __error__=""[1m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: user got admin rights
+  - name: nextcloud bunch of files have been deleted
+    rules:
+      - alert: nextcloudFilesDeleted
+        expr: count by(user,method,remoteAddr,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/remote.php/dav/.*" url!~"/remote.php/dav/.*./trash" method="DELETE" __error__=""[1m])) > 50
+        labels:
+          severity: warning
+        annotations:
+          summary: more than 50 files have been deleted within 1 minute 
+  - name: nextcloud bunch of files have been edited
+    rules:
+      - alert: nextcloudFilesEdited
+        expr: count by(user,method,remoteAddr,userAgent,refId)(count_over_time({job="nextcloud"} | json | url=~"/apps/text/session/sync" method="POST" __error__=""[1m])) > 50
+        labels:
+          severity: warning
+        annotations:
+          summary: more than 50 files have been edited within 1 minute
