@@ -3,7 +3,7 @@ groups:
   - name: nextcloud login attempt
     rules:
       - alert: nextcloudLoginAttempt
-        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/login*"  message!~".*.(S|s)uccessful.*"  __error__=""[1m])) > 0
+        expr: sum by(user,remoteAddr,message,userAgent)(count_over_time({job="nextcloud"} | json | url=~"/login*"  message!~".*.(S|s)uccessful.*" method="POST" __error__=""[1m])) > 0
         labels:
           severity: warning
         annotations:
