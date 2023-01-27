@@ -10,7 +10,7 @@ Grafana dashboard for viewing Nextcloud audit logs with data collected by Loki
 This dashboard uses Nextcloud audit logs, which must first be enabled in the Nextcloud configuration und ist nicht mit den normalen Nextcloud logs kompatibel. 
 
 
-This dashboard is posted on [Grafana's dashboards section](https://grafana.com/grafana/dashboards/17957-nextcloud-audit-logs/). 
+This dashboard is posted on [Grafana's dashboards section](https://grafana.com/grafana/dashboards/17971-nextcloud-audit-logs/). 
 
 
 ![Grafana-Dashboard-Nextcloud-Audit](grafana-dashboard-nextcloud-audit-logs-1.png)
