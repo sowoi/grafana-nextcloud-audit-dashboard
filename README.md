@@ -17,6 +17,8 @@ This dashboard is posted on [Grafana's dashboards section](https://grafana.com/g
 ![Grafana-Dashboard-Nextcloud-Audit](grafana-dashboard-nextcloud-audit-logs-2.png)
 
 
+# Alert rules
+See [nextcloud.yaml](nextcloud.yaml) file for some examples of Loki alert rules that you can use in conjunction with this dashboard and Prometheus Alertmanager.
 
 # License
 Licensed under the terms of GNU General Public License v3.0. See LICENSE file.
