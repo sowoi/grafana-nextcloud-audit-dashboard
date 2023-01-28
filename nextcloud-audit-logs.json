@@ -15,7 +15,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "9.2.8"
+      "version": "9.3.6"
     },
     {
       "type": "panel",
@@ -73,7 +73,7 @@
   "description": "Grafana dashboard for viewing Nextcloud audit logs with data collected by Loki/Promtail",
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "gnetId": 17957,
+  "gnetId": 17971,
   "graphTooltip": 0,
   "id": null,
   "links": [],
@@ -142,7 +142,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.2.8",
+      "pluginVersion": "9.3.6",
       "targets": [
         {
           "datasource": {
@@ -163,7 +163,7 @@
           "options": {
             "mode": "reduceRow",
             "reduce": {
-              "reducer": "sum"
+              "reducer": "count"
             },
             "replaceFields": true
           }
@@ -238,7 +238,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.2.8",
+      "pluginVersion": "9.3.6",
       "targets": [
         {
           "datasource": {
@@ -373,9 +373,12 @@
         "type": "loki",
         "uid": "${DS_LOKI}"
       },
-      "description": "Attempted logins with invalid username. If a certain username appears more often than 1, it may be that the username was read out of eher via a databreach.",
+      "description": "Attempted logins with invalid username or unsuccessful logins with known usernames. If a certain username appears more often than 1, it may be that the username was read out of eher via a databreach.",
       "fieldConfig": {
         "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -414,9 +417,9 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "textMode": "value_and_name"
       },
-      "pluginVersion": "9.2.8",
+      "pluginVersion": "9.3.6",
       "targets": [
         {
           "datasource": {
@@ -424,14 +427,23 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "sum by(wrongUser) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*`  message !~ `.*.(S|s)uccessful.*` | pattern `<_>\\\"<wrongUser>\\\"` | __error__=\"\"[$__range]))",
-          "legendFormat": "{{ wrongUser }}",
+          "expr": "count by(user)(sum by(user,reqId)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/login` | pattern `<_>Login attempt: \\\"<userLogin>\\\"` |  label_format user=userLogin| __error__=\"\"[$__range])) == 1)",
+          "legendFormat": "{{ user }}",
           "queryType": "range",
           "refId": "A"
         }
       ],
       "title": "login attempts with unknown user",
-      "transformations": [],
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^((?!Value).)*$"
+            }
+          }
+        }
+      ],
       "transparent": true,
       "type": "stat"
     },
@@ -508,7 +520,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "9.2.8",
+      "pluginVersion": "9.3.6",
       "targets": [
         {
           "datasource": {
@@ -577,7 +589,7 @@
       "type": "table"
     },
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -585,1746 +597,1742 @@
         "y": 49
       },
       "id": 18,
-      "panels": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Changes made by registered users.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "displayMode": "color-background",
-                "inspect": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "pattern": "DELETE.*",
-                    "result": {
-                      "color": "red",
-                      "index": 0
-                    }
-                  },
-                  "type": "regex"
-                },
-                {
-                  "options": {
-                    "pattern": "Failed two factor attempt .*",
-                    "result": {
-                      "color": "red",
-                      "index": 1
-                    }
-                  },
-                  "type": "regex"
-                }
-              ],
-              "noValue": "no file changes by users found within the the timerange",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 13,
-            "w": 12,
-            "x": 0,
-            "y": 58
-          },
-          "id": 19,
-          "options": {
-            "footer": {
-              "enablePagination": true,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"}| json | url=~\"/remote.php/dav/.*\" method!~\"REPORT\" method!~\"PROPFIND\" method!~\"OPTIONS\"  | pattern `<_>File<_> \\\"/<_>/<fileName>\\\"` | __error__=\"\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "File changes by authenticated users",
-          "transformations": [
-            {
-              "id": "extractFields",
-              "options": {
-                "format": "json",
-                "replace": true,
-                "source": "labels"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "app": true,
-                  "data_app": true,
-                  "filename": true,
-                  "job": true,
-                  "level": true,
-                  "reqId": true,
-                  "url": true,
-                  "user": false,
-                  "version": true
-                },
-                "indexByName": {
-                  "filename": 1,
-                  "job": 2,
-                  "message": 3,
-                  "remoteAddr": 5,
-                  "time": 0,
-                  "url": 6,
-                  "user": 7,
-                  "userAgent": 8,
-                  "userName": 4
-                },
-                "renameByName": {}
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "desc": true,
-                    "field": "time"
-                  }
-                ]
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Files deleted from the trash bin. These are irretrievably deleted.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "pattern": "DELETE.*",
-                    "result": {
-                      "color": "red",
-                      "index": 0
-                    }
-                  },
-                  "type": "regex"
-                },
-                {
-                  "options": {
-                    "pattern": "Failed two factor attempt .*",
-                    "result": {
-                      "color": "red",
-                      "index": 1
-                    }
-                  },
-                  "type": "regex"
-                }
-              ],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 1
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 2,
-            "x": 0,
-            "y": 71
-          },
-          "id": 25,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json message=\"message\", remoteAddr=\"remoteAddr\", time=\"time\", userAgent=\"userAgent\", user=\"user\", url=\"url\", method=\"method\" | url=~\"/remote.php/dav/trashbin/.*\" method=\"DELETE\" | __error__=\"\" [$__interval]))",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Files deleted from trash",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "include": [],
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "If a lot of files were deleted at once, you should take a closer look.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "pattern": "DELETE.*",
-                    "result": {
-                      "color": "red",
-                      "index": 0
-                    }
-                  },
-                  "type": "regex"
-                },
-                {
-                  "options": {
-                    "pattern": "Failed two factor attempt .*",
-                    "result": {
-                      "color": "red",
-                      "index": 1
-                    }
-                  },
-                  "type": "regex"
-                }
-              ],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 1
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 2,
-            "x": 2,
-            "y": 71
-          },
-          "id": 24,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json message=\"message\", remoteAddr=\"remoteAddr\", time=\"time\", userAgent=\"userAgent\", user=\"user\", url=\"url\", method=\"method\" | url=~\"/remote.php/dav/.*\" url!~\"/remote.php/dav/.*./trash\" method=\"DELETE\" | __error__=\"\" [$__interval]))",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Files deleted",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "include": [],
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "If a lot of files were changed at once, you should take a closer look.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 1
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 2,
-            "x": 4,
-            "y": 71
-          },
-          "id": 26,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "text": {
-              "valueSize": 0
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by (reqId) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\"/apps/text/session/sync\" method=\"POST\" | __error__=\"\" [$__interval]))",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Files updated",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "include": [],
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Number of files created. If this number increases very much, there may be a problem.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "pattern": "DELETE.*",
-                    "result": {
-                      "color": "red",
-                      "index": 0
-                    }
-                  },
-                  "type": "regex"
-                },
-                {
-                  "options": {
-                    "pattern": "Failed two factor attempt .*",
-                    "result": {
-                      "color": "red",
-                      "index": 1
-                    }
-                  },
-                  "type": "regex"
-                }
-              ],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 2,
-            "x": 6,
-            "y": 71
-          },
-          "id": 27,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | message=~`File created.*` | __error__=\"\" [$__interval]))",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Files created",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "include": [],
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Number of downloads. These do not have to be different files.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 2,
-            "x": 8,
-            "y": 71
-          },
-          "id": 28,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\".*.download.*\"  | __error__=\"\" [$__interval]))",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "File downloads",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "include": [],
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Number of files created. If this number increases very much, there may be a problem.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "smooth",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 12,
-            "x": 0,
-            "y": 76
-          },
-          "id": 38,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | message=~`File created.*`| __error__=\"\" [$__range]))",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Files created",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "reducer": "sum"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "timeseries"
-        }
-      ],
+      "panels": [],
       "title": "User file interactions",
       "type": "row"
     },
     {
-      "collapsed": true,
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Changes made by registered users.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background",
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "pattern": "DELETE.*",
+                "result": {
+                  "color": "red",
+                  "index": 0
+                }
+              },
+              "type": "regex"
+            },
+            {
+              "options": {
+                "pattern": "Failed two factor attempt .*",
+                "result": {
+                  "color": "red",
+                  "index": 1
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "no file changes by users found within the the timerange",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "h": 13,
+        "w": 12,
         "x": 0,
         "y": 50
       },
-      "id": 10,
-      "panels": [
+      "id": 19,
+      "options": {
+        "footer": {
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
-          "description": "User changes, e.g. creation, deletion, deactivation, password change, etc.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "displayMode": "color-background",
-                "inspect": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "pattern": "User.*.added to group \"admin\"",
-                    "result": {
-                      "color": "red",
-                      "index": 0,
-                      "text": "User has been given admin rights"
-                    }
-                  },
-                  "type": "regex"
-                },
-                {
-                  "options": {
-                    "pattern": "User deleted.*",
-                    "result": {
-                      "color": "yellow",
-                      "index": 1,
-                      "text": "User deleted"
-                    }
-                  },
-                  "type": "regex"
-                }
-              ],
-              "noValue": "no user changes found within the the timerange",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 12,
-            "x": 0,
-            "y": 59
-          },
-          "id": 12,
-          "options": {
-            "footer": {
-              "enablePagination": true,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json  | url=~`/ocs/v2.php/cloud/users.*` | pattern `<_>User created: \\\"<userName>\\\"` | pattern `<_>User deleted: \\\"<userName>\\\"`| pattern `<_>Password of user \\\"<userName>\\\"` | pattern `<_>Email<_>user <userName>\"` | pattern `<_>User \\\"<userName>\\\" added` | pattern `<_>User \\\"<userName>\\\"` | pattern `<_>User enabled: \\\"<userName>\\\"` | pattern `<_>User disabled: \\\"<userName>\\\"`| __error__=\"\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Changes",
-          "transformations": [
-            {
-              "id": "extractFields",
-              "options": {
-                "format": "json",
-                "replace": true,
-                "source": "labels"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "app": true,
-                  "data_app": true,
-                  "filename": true,
-                  "job": true,
-                  "level": true,
-                  "method": true,
-                  "reqId": true,
-                  "url": true,
-                  "version": true
-                },
-                "indexByName": {
-                  "app": 9,
-                  "data_app": 10,
-                  "filename": 1,
-                  "job": 2,
-                  "level": 11,
-                  "message": 3,
-                  "method": 12,
-                  "remoteAddr": 7,
-                  "reqId": 13,
-                  "time": 0,
-                  "url": 4,
-                  "user": 6,
-                  "userAgent": 8,
-                  "userName": 5,
-                  "version": 14
-                },
-                "renameByName": {
-                  "user": "changedBy"
-                }
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "desc": true,
-                    "field": "time"
-                  }
-                ]
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "table"
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json | url=~\"/remote.php/dav/.*\" method!~\"REPORT\" method!~\"PROPFIND\" method!~\"OPTIONS\"  | pattern `<_>File<_> \\\"/<_>/<fileName>\\\"` | __error__=\"\"",
+          "queryType": "range",
+          "refId": "A"
         }
       ],
+      "title": "File changes by authenticated users",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "filename": true,
+              "job": true,
+              "level": true,
+              "reqId": true,
+              "url": true,
+              "user": false,
+              "version": true
+            },
+            "indexByName": {
+              "filename": 1,
+              "job": 2,
+              "message": 3,
+              "remoteAddr": 5,
+              "time": 0,
+              "url": 6,
+              "user": 7,
+              "userAgent": 8,
+              "userName": 4
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "time"
+              }
+            ]
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Files deleted from the trash bin. These are irretrievably deleted.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "pattern": "DELETE.*",
+                "result": {
+                  "color": "red",
+                  "index": 0
+                }
+              },
+              "type": "regex"
+            },
+            {
+              "options": {
+                "pattern": "Failed two factor attempt .*",
+                "result": {
+                  "color": "red",
+                  "index": 1
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 2,
+        "x": 0,
+        "y": 63
+      },
+      "id": 25,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\"/remote.php/dav/trashbin/.*\" method=\"DELETE\" | __error__=\"\" [$__interval]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Files deleted from trash",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [],
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "If a lot of files were deleted at once, you should take a closer look.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "pattern": "DELETE.*",
+                "result": {
+                  "color": "red",
+                  "index": 0
+                }
+              },
+              "type": "regex"
+            },
+            {
+              "options": {
+                "pattern": "Failed two factor attempt .*",
+                "result": {
+                  "color": "red",
+                  "index": 1
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 2,
+        "x": 2,
+        "y": 63
+      },
+      "id": 24,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\"/remote.php/dav/.*\" url!~\"/remote.php/dav/.*./trash\" method=\"DELETE\" | __error__=\"\" [$__interval]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Files deleted",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [],
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "If a lot of files were changed at once, you should take a closer look.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 2,
+        "x": 4,
+        "y": 63
+      },
+      "id": 26,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "valueSize": 0
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by (reqId) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\"/apps/text/session/sync\" method=\"POST\" | __error__=\"\" [$__interval]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Files updated",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [],
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Number of files created. If this number increases very much, there may be a problem.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "pattern": "DELETE.*",
+                "result": {
+                  "color": "red",
+                  "index": 0
+                }
+              },
+              "type": "regex"
+            },
+            {
+              "options": {
+                "pattern": "Failed two factor attempt .*",
+                "result": {
+                  "color": "red",
+                  "index": 1
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 2,
+        "x": 6,
+        "y": 63
+      },
+      "id": 27,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | message=~`File created.*` | __error__=\"\" [$__interval]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Files created",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [],
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Number of downloads. These do not have to be different files.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 2,
+        "x": 8,
+        "y": 63
+      },
+      "id": 28,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~\".*.download.*\"  | __error__=\"\" [$__interval]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "File downloads",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "include": [],
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Number of files created. If this number increases very much, there may be a problem.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
+      "id": 38,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by (message) (count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | message=~`File created.*`| __error__=\"\" [$__range]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Files created",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "sum"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 75
+      },
+      "id": 10,
+      "panels": [],
       "title": "User modifications",
       "type": "row"
     },
     {
-      "collapsed": true,
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "User changes, e.g. creation, deletion, deactivation, password change, etc.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background",
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "pattern": "User.*.added to group \"admin\"",
+                "result": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "User has been given admin rights"
+                }
+              },
+              "type": "regex"
+            },
+            {
+              "options": {
+                "pattern": "User deleted.*",
+                "result": {
+                  "color": "yellow",
+                  "index": 1,
+                  "text": "User deleted"
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "no user changes found within the the timerange",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 76
+      },
+      "id": 12,
+      "options": {
+        "footer": {
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json  | url=~`/ocs/v2.php/cloud/users.*` | pattern `<_>User created: \\\"<userName>\\\"` | pattern `<_>User deleted: \\\"<userName>\\\"`| pattern `<_>Password of user \\\"<userName>\\\"` | pattern `<_>Email<_>user <userName>\"` | pattern `<_>User \\\"<userName>\\\" added` | pattern `<_>User \\\"<userName>\\\"` | pattern `<_>User enabled: \\\"<userName>\\\"` | pattern `<_>User disabled: \\\"<userName>\\\"`| __error__=\"\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Changes",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "filename": true,
+              "job": true,
+              "level": true,
+              "method": true,
+              "reqId": true,
+              "url": true,
+              "version": true
+            },
+            "indexByName": {
+              "app": 9,
+              "data_app": 10,
+              "filename": 1,
+              "job": 2,
+              "level": 11,
+              "message": 3,
+              "method": 12,
+              "remoteAddr": 7,
+              "reqId": 13,
+              "time": 0,
+              "url": 4,
+              "user": 6,
+              "userAgent": 8,
+              "userName": 5,
+              "version": 14
+            },
+            "renameByName": {
+              "user": "changedBy"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "time"
+              }
+            ]
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 51
+        "y": 87
       },
       "id": 4,
-      "panels": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Accesses without user login.",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "align": "auto",
-                "displayMode": "auto",
-                "inspect": false
-              },
-              "mappings": [],
-              "noValue": "no anonymous accesses found within the the timerange",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 12,
-            "x": 0,
-            "y": 60
-          },
-          "id": 1,
-          "options": {
-            "footer": {
-              "enablePagination": true,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"`",
-              "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Anonymous accesses via share link",
-          "transformations": [
-            {
-              "id": "extractFields",
-              "options": {
-                "format": "json",
-                "replace": true,
-                "source": "labels"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "app": true,
-                  "data_app": true,
-                  "filename": true,
-                  "job": true,
-                  "level": true,
-                  "method": true,
-                  "reqId": true,
-                  "user": true,
-                  "version": true
-                },
-                "indexByName": {
-                  "accesstoken": 4,
-                  "app": 10,
-                  "data_app": 11,
-                  "filename": 1,
-                  "job": 2,
-                  "level": 12,
-                  "message": 3,
-                  "method": 13,
-                  "remoteAddr": 8,
-                  "reqId": 14,
-                  "sharedby": 5,
-                  "time": 0,
-                  "url": 6,
-                  "user": 7,
-                  "userAgent": 9,
-                  "version": 15
-                },
-                "renameByName": {}
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "desc": true,
-                    "field": "time"
-                  }
-                ]
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "mappings": [],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 4,
-            "x": 0,
-            "y": 71
-          },
-          "id": 29,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by(time)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | __error__=\"\" [$__interval]))",
-              "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Anonymous accesses via share link (count)",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "mappings": [],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 4,
-            "x": 4,
-            "y": 71
-          },
-          "id": 30,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "count by(remoteAddr)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | __error__=\"\" [$__interval]))",
-              "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Anonymous accesses by unique remote IPs",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "See permission changes panel below to find out if the full write permission has been revised again.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "noValue": "0",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 1
-                  }
-                ]
-              },
-              "unit": "short"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 4,
-            "x": 8,
-            "y": 71
-          },
-          "id": 31,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "sum by(shareID)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` message!~`The password.*` | pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID=`31` | __error__=\"\" [$__interval]))",
-              "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Possible folder shares with full write permission",
-          "transformations": [
-            {
-              "id": "calculateField",
-              "options": {
-                "mode": "reduceRow",
-                "reduce": {
-                  "reducer": "count"
-                },
-                "replaceFields": true
-              }
-            },
-            {
-              "disabled": true,
-              "id": "extractFields",
-              "options": {
-                "format": "json",
-                "replace": true,
-                "source": "labels"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "app": true,
-                  "data_app": true,
-                  "job": true,
-                  "level": true,
-                  "message": true,
-                  "method": true,
-                  "reqId": false,
-                  "userAgent": true,
-                  "version": true
-                },
-                "indexByName": {},
-                "renameByName": {}
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "Anonymous file operations via share link. Accesses without user login.",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "align": "auto",
-                "displayMode": "color-background",
-                "filterable": true,
-                "inspect": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "pattern": "File created.*",
-                    "result": {
-                      "color": "red",
-                      "index": 0
-                    }
-                  },
-                  "type": "regex"
-                },
-                {
-                  "options": {
-                    "pattern": "File written.*",
-                    "result": {
-                      "color": "yellow",
-                      "index": 1
-                    }
-                  },
-                  "type": "regex"
-                }
-              ],
-              "noValue": "no anonymous file operations found within the the timerange",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "message"
-                },
-                "properties": [
-                  {
-                    "id": "custom.width",
-                    "value": 269
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 12,
-            "x": 0,
-            "y": 82
-          },
-          "id": 2,
-          "options": {
-            "footer": {
-              "enablePagination": true,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true,
-            "sortBy": []
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"}| json  | user=`--` | url!=`--` message!~`Login.*` | pattern `<_>File <_> \\\"/<_>/<fileName>\\\"` | pattern `<_>Preview <_> \\\"/<_>/<fileName>\\\"`| __error__=\"\"",
-              "key": "Q-894d39f9-5739-404c-a219-de17a05259fb-0",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Anonymous file operations via sharelink",
-          "transformations": [
-            {
-              "id": "extractFields",
-              "options": {
-                "format": "json",
-                "replace": true,
-                "source": "labels"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "app": true,
-                  "data_app": true,
-                  "file_created": true,
-                  "file_deleted": true,
-                  "file_updated": true,
-                  "filename": true,
-                  "job": true,
-                  "level": true,
-                  "message": false,
-                  "method": true,
-                  "reqId": true,
-                  "url": true,
-                  "user": true,
-                  "version": true
-                },
-                "indexByName": {
-                  "app": 9,
-                  "data_app": 10,
-                  "fileName": 6,
-                  "filename": 1,
-                  "job": 2,
-                  "level": 11,
-                  "message": 3,
-                  "method": 12,
-                  "remoteAddr": 7,
-                  "reqId": 13,
-                  "time": 0,
-                  "url": 4,
-                  "user": 5,
-                  "userAgent": 8,
-                  "version": 14
-                },
-                "renameByName": {}
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "desc": true,
-                    "field": "time"
-                  }
-                ]
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "table"
-        },
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "${DS_LOKI}"
-          },
-          "description": "#### Files\n| Share permissions | Code |\n| ------------------| ---|\n| Read-only |17 |\n| Allow editing | 19 |\n#### Folders\n| Share permissions | Code |\n| ------------------| ---|\n| Write Protected |17 |\n|Allow upload and editing | 31 |\n|Allow upload and editing (no upload) | 27 |\n|Allow upload and editing (no upload, no editing) |25 |",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "align": "auto",
-                "displayMode": "color-background",
-                "inspect": false
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "4": {
-                      "color": "green",
-                      "index": 6,
-                      "text": "drop files (upload only)"
-                    },
-                    "17": {
-                      "color": "green",
-                      "index": 0,
-                      "text": "read-only"
-                    },
-                    "19": {
-                      "color": "red",
-                      "index": 1,
-                      "text": "editable"
-                    },
-                    "21": {
-                      "color": "yellow",
-                      "index": 4,
-                      "text": "upload"
-                    },
-                    "23": {
-                      "color": "yellow",
-                      "index": 7,
-                      "text": "write permissions without delete"
-                    },
-                    "25": {
-                      "color": "red",
-                      "index": 5,
-                      "text": "deletion rights"
-                    },
-                    "27": {
-                      "color": "yellow",
-                      "index": 2,
-                      "text": "editable but no upload"
-                    },
-                    "31": {
-                      "color": "red",
-                      "index": 3,
-                      "text": "full write permissoin"
-                    }
-                  },
-                  "type": "value"
-                }
-              ],
-              "noValue": "no permission changes on shared folders found within the the timerange",
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 11,
-            "w": 12,
-            "x": 0,
-            "y": 93
-          },
-          "id": 6,
-          "options": {
-            "footer": {
-              "enablePagination": true,
-              "fields": "",
-              "reducer": [
-                "sum"
-              ],
-              "show": false
-            },
-            "showHeader": true
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | __error__=\"\"",
-              "queryType": "range",
-              "refId": "A"
-            }
-          ],
-          "title": "Permission changes on shared folders or files",
-          "transformations": [
-            {
-              "id": "extractFields",
-              "options": {
-                "format": "json",
-                "replace": true,
-                "source": "labels"
-              }
-            },
-            {
-              "id": "organize",
-              "options": {
-                "excludeByName": {
-                  "app": true,
-                  "data_app": true,
-                  "filename": true,
-                  "job": true,
-                  "level": true,
-                  "method": true,
-                  "reqId": true,
-                  "url": true,
-                  "version": true
-                },
-                "indexByName": {
-                  "app": 11,
-                  "changedPermissionID": 7,
-                  "data_app": 12,
-                  "filename": 1,
-                  "job": 2,
-                  "level": 13,
-                  "message": 3,
-                  "method": 14,
-                  "remoteAddr": 4,
-                  "reqId": 15,
-                  "shareID": 8,
-                  "sharedFileOrFolder": 9,
-                  "time": 0,
-                  "url": 5,
-                  "user": 6,
-                  "userAgent": 10,
-                  "version": 16
-                },
-                "renameByName": {}
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "desc": true,
-                    "field": "time"
-                  }
-                ]
-              }
-            }
-          ],
-          "transparent": true,
-          "type": "table"
-        }
-      ],
+      "panels": [],
       "title": "Shared Links",
       "type": "row"
     },
     {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 52
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
       },
-      "id": 35,
-      "panels": [
+      "description": "Accesses without user login.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "noValue": "no anonymous accesses found within the the timerange",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 88
+      },
+      "id": 1,
+      "options": {
+        "footer": {
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
         {
           "datasource": {
             "type": "loki",
             "uid": "${DS_LOKI}"
           },
-          "description": "General nextcloud audit logs with references to events",
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 5
-          },
-          "id": 37,
-          "options": {
-            "dedupStrategy": "none",
-            "enableLogDetails": true,
-            "prettifyLogMessage": true,
-            "showCommonLabels": false,
-            "showLabels": false,
-            "showTime": true,
-            "sortOrder": "Descending",
-            "wrapLogMessage": false
-          },
-          "pluginVersion": "9.2.8",
-          "targets": [
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | message=~\"Login successful.*\" | line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.user}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "queryType": "range",
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*`  message !~ `.*.(S|s)uccessful.*` | pattern `<_>. \\\"<wrongUser>\\\"` | line_format \"🟥 🌐 IP {{.remoteAddr}} 👥 {{.wrongUser}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"}| json | url=~\"/remote.php/dav/.*\" method!~\"REPORT\" method!~\"PROPFIND\" method!~\"OPTIONS\"  | pattern `<_>File<_> \\\"/<_>/<fileName>\\\"` | line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.user}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "C"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json  | url=~`/ocs/v2.php/cloud/users.*` | pattern `<_>User created: \\\"<userName>\\\"` | pattern `<_>User deleted: \\\"<userName>\\\"`| pattern `<_>Password of user \\\"<userName>\\\"` | pattern `<_>Email<_>user <userName>\"` | pattern `<_>User \\\"<userName>\\\" added` | pattern `<_>User \\\"<userName>\\\"` | pattern `<_>User enabled: \\\"<userName>\\\"` | pattern `<_>User disabled: \\\"<userName>\\\"`| line_format \"🟥 🌐 IP {{.remoteAddr}} 👥 {{.userName}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "D"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | line_format \"🟨 🌐 IP {{.remoteAddr}} 👥 anonymous 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "E"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID=~`(19|25|31)`| line_format \"🟥 🌐 IP {{.remoteAddr}} 👥 {{.userName}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "F"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID!~`(19|25|31)`| line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.userName}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "G"
-            },
-            {
-              "datasource": {
-                "type": "loki",
-                "uid": "${DS_LOKI}"
-              },
-              "editorMode": "code",
-              "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | message=~\"Login successful.*\" | line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.user}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
-              "hide": false,
-              "queryType": "range",
-              "refId": "H"
-            }
-          ],
-          "title": "logfile",
-          "transparent": true,
-          "type": "logs"
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"`",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
         }
       ],
+      "title": "Anonymous accesses via share link",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "filename": true,
+              "job": true,
+              "level": true,
+              "method": true,
+              "reqId": true,
+              "user": true,
+              "version": true
+            },
+            "indexByName": {
+              "accesstoken": 4,
+              "app": 10,
+              "data_app": 11,
+              "filename": 1,
+              "job": 2,
+              "level": 12,
+              "message": 3,
+              "method": 13,
+              "remoteAddr": 8,
+              "reqId": 14,
+              "sharedby": 5,
+              "time": 0,
+              "url": 6,
+              "user": 7,
+              "userAgent": 9,
+              "version": 15
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "time"
+              }
+            ]
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 4,
+        "x": 0,
+        "y": 99
+      },
+      "id": 29,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by(time)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | user=`--` message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | __error__=\"\" [$__interval]))",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Anonymous accesses via share link (count)",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 4,
+        "x": 4,
+        "y": 99
+      },
+      "id": 30,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "count by(remoteAddr)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | user=`--` message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | __error__=\"\" [$__interval]))",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Anonymous accesses by unique remote IPs",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "See permission changes panel below to find out if the full write permission has been revised again.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 4,
+        "x": 8,
+        "y": 99
+      },
+      "id": 31,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(shareID)(count_over_time({job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` message!~`The password.*` | pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID=`31` | __error__=\"\" [$__interval]))",
+          "key": "Q-222bcf94-9244-4436-b368-330bbdc28fdd-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Possible folder shares with full write permission",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "reduceRow",
+            "reduce": {
+              "reducer": "count"
+            },
+            "replaceFields": true
+          }
+        },
+        {
+          "disabled": true,
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "job": true,
+              "level": true,
+              "message": true,
+              "method": true,
+              "reqId": false,
+              "userAgent": true,
+              "version": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "Anonymous file operations via share link. Accesses without user login.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background",
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "pattern": "File created.*",
+                "result": {
+                  "color": "red",
+                  "index": 0
+                }
+              },
+              "type": "regex"
+            },
+            {
+              "options": {
+                "pattern": "File written.*",
+                "result": {
+                  "color": "yellow",
+                  "index": 1
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "noValue": "no anonymous file operations found within the the timerange",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 269
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 110
+      },
+      "id": 2,
+      "options": {
+        "footer": {
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json  | user=`--` url!=`--` message!~`Login.*` | pattern `<_>File <_> \\\"/<_>/<fileName>\\\"` | pattern `<_>Preview <_> \\\"/<_>/<fileName>\\\"`| __error__=\"\"",
+          "key": "Q-894d39f9-5739-404c-a219-de17a05259fb-0",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Anonymous file operations via sharelink",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "file_created": true,
+              "file_deleted": true,
+              "file_updated": true,
+              "filename": true,
+              "job": true,
+              "level": true,
+              "message": false,
+              "method": true,
+              "reqId": true,
+              "url": true,
+              "user": true,
+              "version": true
+            },
+            "indexByName": {
+              "app": 9,
+              "data_app": 10,
+              "fileName": 6,
+              "filename": 1,
+              "job": 2,
+              "level": 11,
+              "message": 3,
+              "method": 12,
+              "remoteAddr": 7,
+              "reqId": 13,
+              "time": 0,
+              "url": 4,
+              "user": 5,
+              "userAgent": 8,
+              "version": 14
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "time"
+              }
+            ]
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "#### Files\n| Share permissions | Code |\n| ------------------| ---|\n| Read-only |17 |\n| Allow editing | 19 |\n#### Folders\n| Share permissions | Code |\n| ------------------| ---|\n| Write Protected |17 |\n|Allow upload and editing | 31 |\n|Allow upload and editing (no upload) | 27 |\n|Allow upload and editing (no upload, no editing) |25 |",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "color-background",
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "4": {
+                  "color": "green",
+                  "index": 6,
+                  "text": "drop files (upload only)"
+                },
+                "17": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "read-only"
+                },
+                "19": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "editable"
+                },
+                "21": {
+                  "color": "yellow",
+                  "index": 4,
+                  "text": "upload"
+                },
+                "23": {
+                  "color": "yellow",
+                  "index": 7,
+                  "text": "write permissions without delete"
+                },
+                "25": {
+                  "color": "red",
+                  "index": 5,
+                  "text": "deletion rights"
+                },
+                "27": {
+                  "color": "yellow",
+                  "index": 2,
+                  "text": "editable but no upload"
+                },
+                "31": {
+                  "color": "red",
+                  "index": 3,
+                  "text": "full write permissoin"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "noValue": "no permission changes on shared folders found within the the timerange",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 121
+      },
+      "id": 6,
+      "options": {
+        "footer": {
+          "enablePagination": true,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | __error__=\"\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Permission changes on shared folders or files",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "format": "json",
+            "replace": true,
+            "source": "labels"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "app": true,
+              "data_app": true,
+              "filename": true,
+              "job": true,
+              "level": true,
+              "method": true,
+              "reqId": true,
+              "url": true,
+              "version": true
+            },
+            "indexByName": {
+              "app": 11,
+              "changedPermissionID": 7,
+              "data_app": 12,
+              "filename": 1,
+              "job": 2,
+              "level": 13,
+              "message": 3,
+              "method": 14,
+              "remoteAddr": 4,
+              "reqId": 15,
+              "shareID": 8,
+              "sharedFileOrFolder": 9,
+              "time": 0,
+              "url": 5,
+              "user": 6,
+              "userAgent": 10,
+              "version": 16
+            },
+            "renameByName": {}
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "time"
+              }
+            ]
+          }
+        }
+      ],
+      "transparent": true,
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 132
+      },
+      "id": 35,
+      "panels": [],
       "title": "General log",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${DS_LOKI}"
+      },
+      "description": "General nextcloud audit logs with references to events",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 133
+      },
+      "id": 37,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "pluginVersion": "9.2.8",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | message=~\"Login successful.*\" | line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.user}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "queryType": "range",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/log.*`  message !~ `.*.(S|s)uccessful.*` | pattern `<_>. \\\"<wrongUser>\\\"` | line_format \"🟥 🌐 IP {{.remoteAddr}} 👥 {{.wrongUser}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"}| json | url=~\"/remote.php/dav/.*\" method!~\"REPORT\" method!~\"PROPFIND\" method!~\"OPTIONS\"  | pattern `<_>File<_> \\\"/<_>/<fileName>\\\"` | line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.user}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json  | url=~`/ocs/v2.php/cloud/users.*` | pattern `<_>User created: \\\"<userName>\\\"` | pattern `<_>User deleted: \\\"<userName>\\\"`| pattern `<_>Password of user \\\"<userName>\\\"` | pattern `<_>Email<_>user <userName>\"` | pattern `<_>User \\\"<userName>\\\" added` | pattern `<_>User \\\"<userName>\\\"` | pattern `<_>User enabled: \\\"<userName>\\\"` | pattern `<_>User disabled: \\\"<userName>\\\"`| line_format \"🟥 🌐 IP {{.remoteAddr}} 👥 {{.userName}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | user=`--` | message=~\"The shared.*\" | pattern `<_>The shared folder with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | pattern `<_>The shared file with the token \\\"<accesstoken>\\\" by \\\"<sharedby>\\\"` | line_format \"🟨 🌐 IP {{.remoteAddr}} 👥 anonymous 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID=~`(19|25|31)`| line_format \"🟥 🌐 IP {{.remoteAddr}} 👥 {{.userName}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | url=~`/ocs/v2.php/apps/files_sharing/api/v1/shares/.*` | message!~`The password.*`| pattern `<_>The permissions of the shared folder \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | pattern `<_>The permissions of the shared file \\\"/<sharedFileOrFolder>\\\"<_>\\\"<shareID>\\\"<_>\\\"<changedPermissionID>\\\"` | changedPermissionID!~`(19|25|31)`| line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.userName}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${DS_LOKI}"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"$jobname\", filename=\"$filename\"} | json | message=~\"Login successful.*\" | line_format \"🟩 🌐 IP {{.remoteAddr}} 👥 {{.user}} 🗩 {{.message }} 🖳 {{.userAgent}} {{.method}} {{.url }} {{.userAgent}}\"",
+          "hide": false,
+          "queryType": "range",
+          "refId": "H"
+        }
+      ],
+      "title": "logfile",
+      "transparent": true,
+      "type": "logs"
     }
   ],
   "refresh": "5s",
@@ -2418,6 +2426,6 @@
   "timezone": "",
   "title": "Nextcloud Audit Logs",
   "uid": "4wjPoyTVi",
-  "version": 13,
+  "version": 10,
   "weekStart": ""
 }
